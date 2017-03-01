@@ -1,0 +1,356 @@
+---
+title: "Untitled"
+author: "Sean Pollock"
+date: "February 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+#Libraries used
+if (!require(dplyr)) {
+        stop("You are missing the package dplyr. Please install it before continuing.")
+} else if (!require(dtplyr)) {
+        stop("You are missing the package dtplyr Please install it before continuing.")
+} else if (!require(data.table)) {
+        stop("You are missing the package data.table. Please install it before continuing.")
+}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+
+```
+
+
+```{r}
+#importing training data
+subject_train <- fread("./UCI HAR Dataset/train/subject_train.txt")
+train_data <- fread("./UCI HAR Dataset/train/X_train.txt")
+train_labels <- fread("./UCI HAR Dataset/train/Y_train.txt")
+
+```
+
+
+```{r}
+#importing meta data
+activity_labels <- fread("./UCI HAR Dataset/activity_labels.txt")
+features <- fread("./UCI HAR Dataset/features.txt")
+
+```
+
+
+```{r}
+#importing testing data
+subject_test <- fread("./UCI HAR Dataset//test/subject_test.txt")
+test_data <- fread("./UCI HAR Dataset//test/x_test.txt")
+test_labels <- fread("./UCI HAR Dataset//test/y_test.txt")
+```
+
+
+
+
+```{r add feature names}
+add_feature_names <- function(set) {
+        feature_names <- features[[2]]
+        named_set <- setnames(set, feature_names)
+}
+```
+
+```{r create key}
+create_key <- function(data_table) {
+        #l <- class(data_table)
+        #print("init")
+        #print(cl)
+        start <- nrow(data_table) +1
+        end <- nrow(data_table) * 2
+        data_table <- mutate(data_table, id = (start:end))
+        #print("after mutate")
+        #class(data_table)        
+        setkey(data_table, id)
+        return(data_table)
+        #class(data_table)
+               
+}
+
+```
+
+
+
+```{r merge columns}
+merge_columns <- function (ubject, set,labels){
+        #requires data.table library
+        subject <- create_key(subject)
+        set <- create_key(set)
+        labels <- create_key(labels)
+        merged_columns <- subject[labels[set]]
+        return(merged_columns)
+}
+
+```
+
+
+```{r marge testing data}
+merge_testing_data <- function (testing_subject,testing_set, testing_labels) {
+        #requires dplyr library
+        #merged_testing_data <- Reduce(merge, list(testing_subject, testing_labels, testing_set))
+        #dt_list <- list(testing_subject, testing_set, testing_labels)
+       # dt_list <- list(testing_subject, testing_set, testing_labels)
+       testing_subject <- create_key(testing_subject)
+        testing_set <- create_key(testing_set)
+        testing_labels <- create_key(testing_labels)
+        #head(testing_subject)
+       # head(testing_set)
+      # merged_testing_data <- merge(testing_subject, testing_labels, by.x="id", by.y="id", all = T) #%>%
+       #     merged2 <- merge(merged_testing_data, testing_set, by.x="id", by.y="id", all = T)  
+       # head(testing_labels)
+        #merged_testing_data <- Reduce(function(...) merge(..., all = T, by.x = "id", by.y = "id"), dt_list)
+        #return(merged_testing_data)
+       #merged_testing_data <- Reduce(function(X,Y) X[Y], dt_list)
+        #http://stackoverflow.com/questions/32526889/merge-multiple-data-tables-with-the-same-column-names
+        merged_testing_data <- testing_subject[testing_labels[testing_set]]
+        return(merged_testing_data)
+}
+```
+
+
+
+
+```{r merge data}
+merge_rows <- function (merged_training_data, merged_testing_data) {
+        merged_data <- rbindlist(list(merged_training_data, merged_testing_data), use.names = T)
+        return(merged_data)
+}
+```
+
+```{r extract_mean_std}
+extract_mean_std <- function(data_table) {
+        #extracts the columns that find the mean and standard deviation of a variable
+        #does not include meanFreq() as this is a measure of something effecting the variable, not the variable itself
+        #does not include angle variables either
+        mean_std_loc <- grep("mean\\(|std", names(merged_data))
+        extracted_data <- select(data_table, data_table[,c(1,3,mean_std_loc)])
+        return(extracted_data)
+}
+```
+
+```{r set names}
+subject_train <- setnames(subject_train, "subject")
+subject_test <- setnames(subject_test, "subject")
+train_labels <- setnames(train_labels, "activity")
+test_labels <- setnames(test_labels, "activity")
+activity_labels <- setnames(activity_labels, c("factor","activity"))
+test_data <- add_feature_names(test_data)
+train_data <- add_feature_names(train_data)
+```
+
+
+
+
+
+
+
+```{r replace activities}
+replace_activities <- function(data_table, activity_labels) {
+        
+        activity_levels <- range(activity_labels$factor)
+        #print(activity_levels)
+        data_table$activity <- as.character(data_table$activity)
+        #cl <- class(data_table$activity)
+        #print(cl)
+        #hd <- head(data_table)
+        #print(hd)
+        for (i in 1:max(activity_levels)) {
+                #test_dt[test_dt$activity==1, "activity"] <- activity_labels[1,"activity"]
+                #data_table[data_table$activity==as.character(i),"activity"] <- activity_labels$activity[[i]]
+                data_table[data_table$activity == as.character(i), "activity"] <- activity_labels[i,"activity"]
+        #print(i)
+        }
+        return(data_table)
+}
+```
+
+```{r}
+make_lower_case <- function (data_table) {
+        col_names_lower <- tolower(names(data_table))
+        data_table <- setnames(data_table, col_names_lower)
+        return(data_table)
+         
+        
+}
+```
+
+```{r tidy_data}
+tidy_data <- function (data_table) {
+        #I've chosen not to decompose variable names based on reasons outlined on this wepbage
+        #https://thoughtfulbloke.wordpress.com/2015/09/09/getting-and-cleaning-the-assignment/
+        #variable names for the features of the test and training provided in data set are considered descriptive. 
+        #the columns denoting subject id and the activity have been labeled "subject" and "activity"" respectively.
+        #Variable names have been tidied based on the criteria from week 4 lecture 1
+        #Variables names should be:
+        #all lower case
+        #descriptive
+        #not duplicated
+        #no underscores, dots or white spaces
+        data_table$activity <- as.factor(data_table$activity)
+        data_table <- make_lower_case(data_table)
+        names_s1 <- gsub("-|\\(\\)","", names(data_table))
+        #names_s1 <- gsub("\\(\\)","",names_s1)
+        data_table <- setnames(data_table, names_s1)
+        return(data_table)
+}
+```
+
+
+
+
+```{r testing}
+
+
+```
+
+```{r}
+average_data <- function (data_table) {
+        data_table <- melt(data_table, id=c("subject", "activity"))
+        data_table <- dcast(data_table, subject + activity ~ variable, mean)
+        
+        return(data_table)
+        
+        
+}
+        
+        
+
+```
+
+
+
+```{r}
+merged_testing_data <- merge_columns(subject_test, test_data, test_labels)
+merged_training_data <- merge_columns(subject_train, train_data, train_labels)
+merged_data <- merge_data(merged_training_data, merged_testing_data)
+extracted_data <- extract_mean_std(merged_data)
+extracted_data_rep <- replace_activities(extracted_data, activity_labels)
+tidied_data <- tidy_data(extracted_data_rep)
+averaged_data <- average_data(tidied_data)
+write.table(averaged_data, "avg_data.txt", row.names=F)
+```
+
+
+```{r}
+write.table(averaged_data, "avg_data.txt", row.names=F)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```

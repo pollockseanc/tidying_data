@@ -1,0 +1,375 @@
+---
+title: "Untitled"
+author: "Sean Pollock"
+date: "February 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+```
+
+
+
+
+```{r}
+dat1 <- data.table(LETTERS)
+dat2 <- data.table(1:26)
+dat3 <- data.table(-1:-26)
+
+```
+
+```{r}
+#dat3<-rowid(dat1) 
+start <- nrow(dat1) +1
+        end <- nrow(dat1) * 2
+        dat1 <- mutate(dat1, id = (start:end))
+        dat2 <- mutate(dat2, id = (start:end))
+        dat3 <- mutate(dat3, id = (start:end))
+        names3 <- names(dat3)
+        dat1 <- setnames(dat1, c("vv","id"))
+        
+        dat2 <- setnames(dat2, c("vv","id"))
+```
+
+
+```{r}
+ck2 <- function(dat3) {
+start <-nrow(dat3) +1
+        end <- nrow(dat3) * 2
+        dat3 <- mutate(dat3, id = (start:end))
+                
+        setkey(dat3, id)
+        return(as.data.table(dat3))
+}
+```
+
+```{r}
+
+rmerged <- rbindlist(list(dat1,dat2), use.names = T)
+
+```
+
+
+
+
+
+```{r}
+#merged <- Reduce(merge, list(dat1,dat2,dat3))
+merged <- merge(dat1,dat2, by=id) %>%
+        merge(dat3, by=id)
+```
+
+```{r}
+test_dt <- data.table(1:50,50:1)
+test_dt <- setnames(test_dt, c("subject","activity"))
+#str(test_dt)
+#test_dt$activity <- as.character(test_dt$activity)
+#str(test_dt)
+#extracted_data[extracted_data$activity==1,]
+#activity_labels$activity[[1]]
+#replace_activities(extracted_data, activity_labels)
+```
+
+```{r}
+#works
+test_dt[test_dt$activity==1, "activity"] <- 5000
+```
+
+```{r}
+#works
+test_dt$activity <- as.character(test_dt$activity)
+class(test_dt$activity)
+
+test_dt[test_dt$activity==1, "activity"] <- activity_labels[1,"activity"]
+```
+
+
+```{r}
+test_grep <- c("mean", "mean()", "meanF", "mean(")
+grep("mean", test_grep)
+grep("meaN()", test_grep)
+grep("mean\\(\\)", test_grep)
+
+
+```
+
+
+```{r}
+if ("dplyr" & "dtplyr" & "data.table" %in% installed.packages())
+
+```
+```{r}
+if (!require(dplyr)) {
+        stop("You are missing the package dplyr. Please install it before continuing.")
+} else if (!require(dtplyr)) {
+        stop("You are missing the package dtplyr Please install it before continuing.")
+} else if (!require(data.table)) {
+        stop("You are missing the package data.table. Please install it before continuing.")
+}
+
+```
+```{r}
+test_dt2 <- data.table(1:50,50:1)
+test_dt2 <- setnames(test_dt2, c("subJECT","activity"))
+names(test_dt2)
+
+
+```
+```{r}
+  col_names_lower2 <- tolower(names(test_dt2))
+col_names_lower2
+        test_dt2 <- setnames(test_dt2, col_names_lower2)
+        names(test_dt2)
+
+
+```
+```{r}
+test_dt2 <- data.table() 
+
+```
+```{r}
+test_tidied <- tidied_data
+
+```
+```{r}
+dplyr_test <- group_by(test_tidied, subject, activity) %>%
+        filter(subject==1, activity == "WALKING") 
+        
+
+```
+```{r}
+meaned <- select(dplyr_test, "tbodyacc-mean()-x:tbodyacc-mean()-z")
+head(meaned)
+```
+```{r}
+names1 <- sub("\\-","",names(dplyr_test))
+names2 <- sub("\\(\\)","",names1)
+
+names2
+
+```
+```{r}
+
+names3 <- sub("\\(\\)","",names(dplyr_test))
+names4 <- sub("-","",names3)
+names4
+```
+```{r}
+x1 <- "-"
+x2 <- "-"
+x1==x2
+```
+```{r}
+names5 <- gsub("-","",names(dplyr_test))
+names5
+
+```
+```{r}
+#does not show updated names in environment
+names_s1 <- gsub("-","", names(dplyr_test))
+names_s1 <- gsub("\\(\\)","",names_s1)
+dplyr_test <- setnames(dplyr_test, names_s1)
+```
+
+```{r}
+dplyr_test <- group_by(test_tidied, subject, activity) %>%
+        filter(subject==1, activity == "WALKING") 
+        
+
+```
+```{r}
+#meaned <- select(dplyr_test, "tbodyaccmean()-x:tbodyacc-mean()-z")
+meaned <- select(dplyr_test, tbodyaccmeanx)
+head(meaned,3)
+meaned2 <- select(dplyr_test,-tbodyaccmeanx)
+head(meaned2,3)
+meaned3 <- select(dplyr_test,-activity)
+head(meaned3,3)
+meaned4 <- select(dplyr_test,-activity, -subject)
+head(meaned4,3)
+```
+
+
+```{r}
+test_dtdf <- as.data.frame(test_dt2)
+class(test_dtdf)
+select(test_dtdf, -subject)
+```
+
+```{r}
+sel <- select(dplyr_test, -activity)
+head(sel)
+
+```
+```{r}
+sel2 <- dplyr_test[, .(activity)]
+head(sel2)
+
+```
+```{r}
+sel2 <- dplyr_test[, .(subject,activity)]
+head(sel2)
+
+```
+```{r}
+sel2 <- dplyr_test[, -.(subject,activity)]
+head(sel2)
+
+```
+```{r}
+sel2 <- dplyr_test[, .(-subject,-activity)]
+head(sel2)
+
+```
+```{r}
+sel2 <- dplyr_test[, .-(subject,activity)]
+head(sel2)
+
+```
+```{r}
+dplyr_test$subject <- as.numeric(dplyr_test$subject)
+dplyr_test$activity <- as.character(dplyr_test$activity)
+sel2 <- dplyr_test[, (subject:tbodyaccjerkmagmean)]
+head(sel2)
+```
+```{r}
+sel3 <- dplyr_test[,,-activity]
+head(sel3)
+
+```
+```{r}
+sel3 <- dplyr_test[,by=tbodyaccmeanx]
+head(sel3)
+
+```
+```{r}
+class(dplyr_test)
+attributes(dplyr_test)
+attributes(dplyr_test$activity)
+attributes(dplyr_test$subject)
+attributes(dplyr_test$tbodyaccmeanx )
+```
+```{r}
+sap<- sapply(dplyr_test, mean)
+class(sap)
+
+```
+
+
+```{r}
+#dplyr_test_agg <- aggregate(dplyr_test, by = c(dplyr_test$subject, dplyr_test$activity), mean)
+#dplyr_test_agg <- aggregate(test_tidied, by = list(test_tidied$subject, test_tidied$activity), mean)
+test_tidied$subject <- as.numeric(test_tidied$subject)
+dplyr_test_agg <- aggregate(test_tidied, by = list(test_tidied$activity), mean)
+head(dplyr_test_agg)
+```
+
+
+```{r}
+dplyr_test_agg <- aggregate(test_tidied, by = list(test_tidied$subject, test_tidied$activity), mean)
+head(dplyr_test_agg)
+```
+
+
+```{r}
+dplyr_test_agg <- aggregate(test_tidied[,3:68], by = list(test_tidied$subject, test_tidied$activity), mean)
+head(dplyr_test_agg)
+```
+
+
+```{r}
+#https://www.r-bloggers.com/reshape-and-aggregate-data-with-the-r-package-reshape2/
+data_molten <- melt(test_tidied, id=c("subject", "activity"))
+class(data_molten)
+```
+
+
+```{r}
+casted_data <- dcast(data_molten, subject + activity ~ variable, mean)
+head(casted_data,20)
+```
+
+
+```{r}
+names_s1 <- gsub("-|\\(\\)","", names(dplyr_test))
+names_s1 <- gsub("\\(\\)","",names_s1)
+dplyr_test <- setnames(dplyr_test, names_s1)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
