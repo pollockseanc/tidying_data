@@ -92,7 +92,7 @@ tidy_data <- function (data_table) {
         data_table$subject <- as.factor(data_table$subject)
         data_table$activity <- as.factor(data_table$activity)
         #Makes the variables lowercase
-        data_table <- make_lower_case(data_table)
+        data_table_names <- make_lower_case(data_table)
         #Removes non alphabetical characters in the variable names
         names1 <- gsub("-|\\(\\)","", names(data_table))
         data_table <- setnames(data_table, names1)
